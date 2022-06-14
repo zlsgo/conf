@@ -9,11 +9,12 @@ import (
 )
 
 type Confhub struct {
+	*viper.Viper
 	filename   string
 	filepath   string
-	Core       *viper.Viper
 	filesuffix string
 	fullpath   string
+	Core       *viper.Viper
 }
 
 func New(file string, defConfFile ...string) *Confhub {
@@ -39,9 +40,8 @@ func New(file string, defConfFile ...string) *Confhub {
 		suffix = tmp[tmpLen]
 	}
 	if suffix == "" {
-		suffix = "yaml"
+		suffix = "toml"
 	}
-	core.SetConfigType(suffix)
 	path = zfile.RealPath(path, true)
 	core.SetConfigName(name)
 	core.AddConfigPath(path)
@@ -56,7 +56,14 @@ func New(file string, defConfFile ...string) *Confhub {
 		}
 	}
 	fullpath := (path + name + "." + suffix)
-	return &Confhub{filename: name, filepath: path, filesuffix: suffix, Core: core, fullpath: fullpath}
+	return &Confhub{
+		Viper:      core,
+		filename:   name,
+		filepath:   path,
+		filesuffix: suffix,
+		fullpath:   fullpath,
+		Core:       core,
+	}
 }
 
 func (c *Confhub) Unmarshal(rawVal interface{}, opts ...viper.DecoderConfigOption) error {
@@ -75,7 +82,7 @@ func (c *Confhub) Read() (err error) {
 		}
 		data := c.Core.AllKeys()
 		if len(data) > 0 {
-			err = c.Core.SafeWriteConfig()
+			err = c.Write()
 		}
 	}
 	return
@@ -103,8 +110,13 @@ func (c *Confhub) GetAll() map[string]interface{} {
 }
 
 func (c *Confhub) Write(filepath ...string) error {
+	f := c.fullpath
 	if len(filepath) > 0 {
-		return c.Core.WriteConfigAs(filepath[0])
+		f = filepath[0]
 	}
-	return c.Core.WriteConfigAs(c.fullpath)
+	return c.Core.WriteConfigAs(f)
+}
+
+func (c *Confhub) Path() string {
+	return c.fullpath
 }

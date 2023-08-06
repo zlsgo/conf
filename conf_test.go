@@ -81,3 +81,17 @@ func TestDef(t *testing.T) {
 	tt.NoError(c.Write())
 	tt.Equal(c.Path(), c2.Path())
 }
+
+func TestFileName(t *testing.T) {
+
+	tt := zlsgo.NewTest(t)
+
+	c := conf.New("zls", func(o *conf.Option) {
+		o.AutoCreate = true
+		o.FileName = "tmp/data/zls"
+	})
+
+	c.SetDefault("test", true)
+	defer zfile.Rmdir("tmp/")
+	tt.NoError(c.Read())
+}

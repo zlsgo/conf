@@ -48,8 +48,8 @@ func New(file string, opt ...func(o *Option)) *Confhub {
 		core.SetEnvPrefix(o.EnvPrefix)
 	}
 
-	if strings.Contains(file, "/") {
-		tmp := strings.Split(file, "/")
+	if strings.Contains(name, "/") {
+		tmp := strings.Split(name, "/")
 		tmpLen = len(tmp) - 1
 		path = strings.Join(tmp[0:tmpLen], "/")
 		name = tmp[tmpLen]
@@ -96,6 +96,11 @@ func (c *Confhub) Read() (err error) {
 				err = nil
 			}
 			data := c.AllKeys()
+
+			if !zfile.DirExist(c.filepath) {
+				zfile.RealPathMkdir(c.filepath)
+			}
+
 			if len(data) > 0 && c.option.AutoCreate {
 				err = c.Write()
 			}

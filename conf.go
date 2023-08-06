@@ -21,7 +21,12 @@ type Confhub struct {
 }
 
 func New(file string, opt ...func(o *Option)) *Confhub {
-	o := Option{}
+	if file == "" {
+		file = "zconf"
+	}
+	o := Option{
+		FileName: file,
+	}
 	for _, f := range opt {
 		f(&o)
 	}
@@ -31,7 +36,7 @@ func New(file string, opt ...func(o *Option)) *Confhub {
 		suffix string
 		tmpLen int
 		core   = viper.New()
-		name   = file
+		name   = o.FileName
 		path   = "./"
 	)
 

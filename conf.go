@@ -16,15 +16,15 @@ type Confhub struct {
 	filepath   string
 	filesuffix string
 	fullpath   string
-	option     Option
+	option     Options
 	primary    *Confhub
 }
 
-func New(file string, opt ...func(o *Option)) *Confhub {
+func New(file string, opt ...func(o *Options)) *Confhub {
 	if file == "" {
 		file = "zconf"
 	}
-	o := Option{
+	o := Options{
 		FileName: file,
 	}
 	for _, f := range opt {

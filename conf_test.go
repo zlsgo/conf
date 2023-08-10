@@ -15,7 +15,7 @@ func TestDev(t *testing.T) {
 	_ = zfile.WriteFile("test-dev.toml", []byte(`zls = "dev"`))
 	defer zfile.Remove("test-dev.toml")
 
-	c := conf.New("test", func(o *conf.Option) {
+	c := conf.New("test", func(o *conf.Options) {
 		o.PrimaryAliss = "dev"
 	})
 
@@ -34,7 +34,7 @@ func TestEnv(t *testing.T) {
 
 	_ = os.Setenv("Z_ZLSGO", "YES")
 
-	c := conf.New("env", func(o *conf.Option) {
+	c := conf.New("env", func(o *conf.Options) {
 		o.AutomaticEnv = true
 		o.AutoCreate = true
 		o.EnvPrefix = "Z"
@@ -86,7 +86,7 @@ func TestFileName(t *testing.T) {
 
 	tt := zlsgo.NewTest(t)
 
-	c := conf.New("zls", func(o *conf.Option) {
+	c := conf.New("zls", func(o *conf.Options) {
 		o.AutoCreate = true
 		o.FileName = "tmp/data/zls"
 	})

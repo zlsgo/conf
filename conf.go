@@ -140,3 +140,11 @@ func (c *Confhub) Write(filepath ...string) error {
 func (c *Confhub) Path() string {
 	return c.fullpath
 }
+
+func (c *Confhub) UnmarshalKey(key string, rawVal interface{}) error {
+	return ztype.To(c.Viper.Get(key), rawVal)
+}
+
+func (c *Confhub) Unmarshal(rawVal interface{}) error {
+	return ztype.To(c.AllSettings(), rawVal)
+}

@@ -9,6 +9,12 @@ import (
 	"github.com/zlsgo/conf"
 )
 
+type appString string
+type Demo struct {
+	Name string    `z:"zls"`
+	App  appString `json:"app"`
+}
+
 func TestDev(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
@@ -27,6 +33,15 @@ func TestDev(t *testing.T) {
 	tt.Equal("test", c.GetString("app"))
 
 	t.Log(c.GetAll())
+
+	var d Demo
+	tt.NoError(c.Unmarshal(&d))
+	tt.Equal(c.GetString("zls"), d.Name)
+	tt.Equal(c.GetString("app"), string(d.App))
+
+	var a appString
+	tt.NoError(c.UnmarshalKey("app", &a))
+	tt.Equal(c.GetString("app"), string(a))
 }
 
 func TestEnv(t *testing.T) {
@@ -83,7 +98,6 @@ func TestDef(t *testing.T) {
 }
 
 func TestFileName(t *testing.T) {
-
 	tt := zlsgo.NewTest(t)
 
 	c := conf.New("zls", func(o *conf.Options) {

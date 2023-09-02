@@ -10,7 +10,6 @@ import (
 )
 
 type Confhub struct {
-	*viper.Viper
 	Core       *viper.Viper
 	filename   string
 	filepath   string
@@ -18,6 +17,7 @@ type Confhub struct {
 	fullpath   string
 	option     Options
 	primary    *Confhub
+	data       ztype.Map
 }
 
 func New(file string, opt ...func(o *Options)) *Confhub {
@@ -77,7 +77,6 @@ func New(file string, opt ...func(o *Options)) *Confhub {
 
 	return &Confhub{
 		primary:    p,
-		Viper:      core,
 		Core:       core,
 		filename:   name,
 		filepath:   path,
@@ -88,14 +87,14 @@ func New(file string, opt ...func(o *Options)) *Confhub {
 }
 
 func (c *Confhub) Read() (err error) {
-	err = c.ReadInConfig()
+	err = c.Core.ReadInConfig()
 	if err != nil {
 		_, ok := err.(viper.ConfigFileNotFoundError)
 		if ok {
 			if c.option.AutoCreate || c.primary != nil {
 				err = nil
 			}
-			data := c.AllKeys()
+			data := c.Core.AllKeys()
 
 			if !zfile.DirExist(c.filepath) {
 				zfile.RealPathMkdir(c.filepath)
@@ -107,7 +106,7 @@ func (c *Confhub) Read() (err error) {
 		}
 	}
 	if c.primary != nil {
-		_ = c.MergeConfigMap(c.primary.GetAll())
+		_ = c.Core.MergeConfigMap(c.primary.GetAll())
 	}
 	return
 }
@@ -116,17 +115,32 @@ func (c *Confhub) Exist() bool {
 	return zfile.FileExist(c.fullpath)
 }
 
+func (c *Confhub) SetDefault(key string, value interface{}) {
+	c.Core.SetDefault(key, value)
+}
+
+func (c *Confhub) Set(key string, value interface{}) {
+	c.Core.Set(key, value)
+}
+
 func (c *Confhub) Get(key string) (value ztype.Type) {
-	return ztype.New(c.Viper.Get(key))
+	return ztype.New(c.Core.Get(key))
 }
 
 func (c *Confhub) ConfigChange(fn func(e fsnotify.Event)) {
-	c.WatchConfig()
-	c.OnConfigChange(fn)
+	c.Core.WatchConfig()
+	c.Core.OnConfigChange(fn)
 }
 
-func (c *Confhub) GetAll() map[string]interface{} {
-	return c.Viper.AllSettings()
+func (c *Confhub) GetAll() ztype.Map {
+	if c.data == nil {
+		c.data = c.Core.AllSettings()
+	}
+	return c.data
+}
+
+func (c *Confhub) AllKeys() []string {
+	return c.Core.AllKeys()
 }
 
 func (c *Confhub) Write(filepath ...string) error {
@@ -134,7 +148,7 @@ func (c *Confhub) Write(filepath ...string) error {
 	if len(filepath) > 0 {
 		f = filepath[0]
 	}
-	return c.Viper.WriteConfigAs(f)
+	return c.Core.WriteConfigAs(f)
 }
 
 func (c *Confhub) Path() string {
@@ -142,9 +156,9 @@ func (c *Confhub) Path() string {
 }
 
 func (c *Confhub) UnmarshalKey(key string, rawVal interface{}) error {
-	return ztype.To(c.Viper.Get(key), rawVal)
+	return ztype.To(c.GetAll().Get(key).Value(), rawVal)
 }
 
 func (c *Confhub) Unmarshal(rawVal interface{}) error {
-	return ztype.To(c.AllSettings(), rawVal)
+	return ztype.To(c.GetAll(), rawVal)
 }

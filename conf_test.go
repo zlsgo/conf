@@ -10,9 +10,14 @@ import (
 )
 
 type appString string
+type Info struct {
+	Age  int    `z:"a"`
+	Name string `z:"name"`
+}
 type Demo struct {
 	Name string    `z:"zls"`
 	App  appString `json:"app"`
+	Info Info
 }
 
 func TestDev(t *testing.T) {
@@ -25,23 +30,29 @@ func TestDev(t *testing.T) {
 		o.PrimaryAliss = "dev"
 	})
 
+	c.SetDefault("info", map[string]interface{}{"a": "18", "name": "is name"})
 	c.SetDefault("zls", "main")
 	c.SetDefault("app", "test")
 	tt.NoError(c.Read(), true)
 
-	tt.Equal("dev", c.GetString("zls"))
-	tt.Equal("test", c.GetString("app"))
+	tt.Equal("dev", c.Get("zls").String())
+	tt.Equal("test", c.Get("app").String())
 
 	t.Log(c.GetAll())
 
 	var d Demo
 	tt.NoError(c.Unmarshal(&d))
-	tt.Equal(c.GetString("zls"), d.Name)
-	tt.Equal(c.GetString("app"), string(d.App))
+	tt.Equal(c.Get("zls").String(), d.Name)
+	tt.Equal(c.Get("app").String(), string(d.App))
 
 	var a appString
 	tt.NoError(c.UnmarshalKey("app", &a))
-	tt.Equal(c.GetString("app"), string(a))
+	tt.Equal(c.Get("app").String(), string(a))
+
+	var i *Info
+	tt.NoError(c.UnmarshalKey("info", &i))
+	tt.Equal(c.Get("info.a").Int(), i.Age)
+	tt.Equal(c.Get("info").Get("name").String(), i.Name)
 }
 
 func TestEnv(t *testing.T) {
@@ -62,11 +73,11 @@ func TestEnv(t *testing.T) {
 
 	tt.NoError(c.Read())
 
-	tt.Equal(os.Getenv("Z_ZLSGO"), c.GetString("ZLSGO"))
-	tt.EqualTrue("123" != c.GetString("ZLSGO"))
+	tt.Equal(os.Getenv("Z_ZLSGO"), c.Get("ZLSGO").String())
+	tt.EqualTrue("123" != c.Get("ZLSGO").String())
 
-	tt.Equal("sohaha", c.GetString("zls"))
-	tt.Equal("sohaha", c.GetString("ZLS"))
+	tt.Equal("sohaha", c.Get("zls").String())
+	tt.Equal("sohaha", c.Get("ZLS").String())
 
 	// defer os.Remove("env.toml")
 
@@ -90,8 +101,8 @@ func TestDef(t *testing.T) {
 	tt.NoError(c2.Read())
 	t.Log(c2.GetAll())
 
-	tt.Equal(c.GetString("project.name"), c2.GetString("project.name"))
-	tt.Equal(c.GetInt("def"), c2.GetInt("def"))
+	tt.Equal(c.Get("project.name").String(), c2.Get("project.name").String())
+	tt.Equal(c.Get("def").Int(), c2.Get("def").Int())
 
 	tt.NoError(c.Write())
 	tt.Equal(c.Path(), c2.Path())

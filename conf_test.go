@@ -31,6 +31,8 @@ func TestDev(t *testing.T) {
 	})
 
 	c.SetDefault("info", map[string]interface{}{"a": "18", "name": "is name"})
+	c.SetDefault("info2", Demo{Name: "main2", App: "test2"})
+	c.SetDefault("infos", []Demo{{Name: "mains", App: "sss", Info: Info{Age: 18, Name: "is name"}}})
 	c.SetDefault("zls", "main")
 	c.SetDefault("app", "test")
 	tt.NoError(c.Read(), true)
@@ -53,6 +55,9 @@ func TestDev(t *testing.T) {
 	tt.NoError(c.UnmarshalKey("info", &i))
 	tt.Equal(c.Get("info.a").Int(), i.Age)
 	tt.Equal(c.Get("info").Get("name").String(), i.Name)
+
+	tt.Equal("test2", c.Get("info2").Get("app").String())
+	tt.Equal("18", c.Get("infos").Slice().Index(0).Get("Info").Get("a").String())
 }
 
 func TestEnv(t *testing.T) {
@@ -87,18 +92,21 @@ func TestEnv(t *testing.T) {
 func TestDef(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	c := conf.New("zls")
+	c := conf.New("def", func(o *conf.Options) {
+		o.AutoCreate = true
+	})
+	defer os.Remove(c.Path())
 
 	c.SetDefault("def", 1)
 	c.Set("project.name", "DemoApp")
 	c.Set("arr", []struct{ Name string }{{"1"}, {"2"}, {"go"}})
 	c.Set("arr", []struct{ Name string }{{"1"}, {"2"}, {"go"}})
 	t.Log(c.Path())
-	tt.NoError(c.Read())
+	c.Read()
 	t.Log(c.GetAll())
 
-	c2 := conf.New("zls.toml")
-	tt.NoError(c2.Read())
+	c2 := conf.New("def.toml")
+	c2.Read()
 	t.Log(c2.GetAll())
 
 	tt.Equal(c.Get("project.name").String(), c2.Get("project.name").String())

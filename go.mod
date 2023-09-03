@@ -8,5 +8,6 @@ require (
 	github.com/sohaha/zlsgo v1.6.4
 	github.com/spf13/viper v1.16.0
 	github.com/subosito/gotenv v1.6.0 // indirect
-	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/sys v0.12.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 )

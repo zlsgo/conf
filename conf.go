@@ -1,10 +1,12 @@
 package conf
 
 import (
+	"reflect"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/sohaha/zlsgo/zfile"
+	"github.com/sohaha/zlsgo/zreflect"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/spf13/viper"
 )
@@ -116,6 +118,19 @@ func (c *Confhub) Exist() bool {
 }
 
 func (c *Confhub) SetDefault(key string, value interface{}) {
+	vof := reflect.Indirect(zreflect.ValueOf(value))
+	switch vof.Kind() {
+	case reflect.Slice, reflect.Array:
+		switch vof.Type().Elem().Kind() {
+		case reflect.Struct:
+			c.Core.SetDefault(key, ztype.ToMaps(value))
+			return
+		}
+	case reflect.Struct:
+		c.Core.SetDefault(key, ztype.ToMap(value))
+		return
+	}
+
 	c.Core.SetDefault(key, value)
 }
 

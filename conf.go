@@ -147,8 +147,8 @@ func (c *Confhub) ConfigChange(fn func(e fsnotify.Event)) {
 	c.Core.OnConfigChange(fn)
 }
 
-func (c *Confhub) GetAll() ztype.Map {
-	if c.data == nil {
+func (c *Confhub) GetAll(force ...bool) ztype.Map {
+	if c.data == nil || (len(force) > 0 && force[0]) {
 		c.data = c.Core.AllSettings()
 	}
 	return c.data
@@ -170,10 +170,10 @@ func (c *Confhub) Path() string {
 	return c.fullpath
 }
 
-func (c *Confhub) UnmarshalKey(key string, rawVal interface{}) error {
-	return ztype.To(c.GetAll().Get(key).Value(), rawVal)
+func (c *Confhub) UnmarshalKey(key string, rawVal interface{}, force ...bool) error {
+	return ztype.To(c.GetAll(force...).Get(key).Value(), rawVal)
 }
 
-func (c *Confhub) Unmarshal(rawVal interface{}) error {
-	return ztype.To(c.GetAll(), rawVal)
+func (c *Confhub) Unmarshal(rawVal interface{}, force ...bool) error {
+	return ztype.To(c.GetAll(force...), rawVal)
 }

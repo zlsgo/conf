@@ -3,7 +3,9 @@ package conf_test
 import (
 	"os"
 	"testing"
+	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/sohaha/zlsgo"
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/zlsgo/conf"
@@ -127,4 +129,31 @@ func TestFileName(t *testing.T) {
 	c.SetDefault("test", true)
 	defer zfile.Rmdir("tmp/")
 	tt.NoError(c.Read())
+}
+
+func TestConfigChange(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+	path := "change.toml"
+	zfile.WriteFile(path, []byte(`
+[info]
+name = 'DemoApp'
+`))
+	defer zfile.Remove(path)
+
+	c := conf.New("change")
+
+	c.ConfigChange(func(e fsnotify.Event) {
+		t.Log(e)
+	})
+	c.Read()
+
+	tt.Equal("DemoApp", c.GetAll().Get("info.name").String())
+	zfile.WriteFile(path, []byte(`
+[info]
+name = 'NewApp'
+`))
+
+	time.Sleep(time.Millisecond * 500)
+	tt.Equal("DemoApp", c.GetAll().Get("info.name").String())
+	tt.Equal("NewApp", c.GetAll(true).Get("info.name").String())
 }

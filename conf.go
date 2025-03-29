@@ -143,12 +143,20 @@ func (c *Confhub) Get(key string) (value ztype.Type) {
 	return ztype.New(c.Core.Get(key))
 }
 
-func (c *Confhub) ConfigChange(fn func(e fsnotify.Event)) {
+func (c *Confhub) ConfigChange(fn func(e fsnotify.Event)) (err error) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return err
+	}
+
+	_ = watcher.Close()
 	c.Core.WatchConfig()
 	c.Core.OnConfigChange(func(in fsnotify.Event) {
 		_ = c.GetAll(true)
 		fn(in)
 	})
+
+	return nil
 }
 
 func (c *Confhub) GetAll(force ...bool) ztype.Map {

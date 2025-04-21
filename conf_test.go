@@ -11,11 +11,14 @@ import (
 	"github.com/zlsgo/conf"
 )
 
-type appString string
-type Info struct {
-	Age  int    `z:"a"`
-	Name string `z:"name"`
-}
+type (
+	appString string
+	Info      struct {
+		Age  int    `z:"a"`
+		Name string `z:"name"`
+	}
+)
+
 type Demo struct {
 	Name string    `z:"zls"`
 	App  appString `json:"app"`
@@ -28,8 +31,9 @@ func TestDev(t *testing.T) {
 	_ = zfile.WriteFile("test-dev.toml", []byte(`zls = "dev"`))
 	defer zfile.Remove("test-dev.toml")
 
-	c := conf.New("test", func(o *conf.Options) {
+	c := conf.New("test", func(o conf.Options) conf.Options {
 		o.PrimaryAliss = "dev"
+		return o
 	})
 
 	c.SetDefault("info", map[string]interface{}{"a": "18", "name": "is name"})
@@ -67,10 +71,11 @@ func TestEnv(t *testing.T) {
 
 	_ = os.Setenv("Z_ZLSGO", "YES")
 
-	c := conf.New("env", func(o *conf.Options) {
+	c := conf.New("env", func(o conf.Options) conf.Options {
 		o.AutomaticEnv = true
 		o.AutoCreate = true
 		o.EnvPrefix = "Z"
+		return o
 	})
 
 	defer zfile.Remove(c.Path())
@@ -94,8 +99,9 @@ func TestEnv(t *testing.T) {
 func TestDef(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	c := conf.New("def", func(o *conf.Options) {
+	c := conf.New("def", func(o conf.Options) conf.Options {
 		o.AutoCreate = true
+		return o
 	})
 	defer os.Remove(c.Path())
 
@@ -121,9 +127,10 @@ func TestDef(t *testing.T) {
 func TestFileName(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	c := conf.New("zls", func(o *conf.Options) {
+	c := conf.New("zls", func(o conf.Options) conf.Options {
 		o.AutoCreate = true
 		o.FileName = "tmp/data/zls"
+		return o
 	})
 
 	c.SetDefault("test", true)

@@ -11,15 +11,48 @@ import (
 	"github.com/zlsgo/conf"
 )
 
-type appString string
-type Info struct {
-	Age  int    `z:"a"`
-	Name string `z:"name"`
-}
+type (
+	appString string
+	Info      struct {
+		Age  int    `z:"a"`
+		Name string `z:"name"`
+	}
+)
+
 type Demo struct {
 	Name string    `z:"zls"`
 	App  appString `json:"app"`
 	Info Info
+}
+
+func TestDefaultMerge(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	_ = zfile.WriteFile("merge.toml", []byte("[xxx]\na = 1\n"))
+	defer zfile.Remove("merge.toml")
+
+	type xxx struct {
+		A int `z:"a"`
+		B int `z:"b"`
+	}
+
+	c := conf.New("merge")
+	c.SetDefault("xxx", xxx{A: 2, B: 3})
+	c.SetDefault("yyy", map[string]interface{}{"a": 2, "b": 3})
+	c.SetDefault("nest", map[string]interface{}{
+		"a": 1,
+		"inner": map[string]interface{}{"x": "ix", "y": "iy"},
+	})
+	tt.NoError(c.Read())
+
+	var v xxx
+	tt.NoError(c.UnmarshalKey("xxx", &v))
+	tt.Equal(1, v.A)
+	tt.Equal(3, v.B)
+
+	tt.Equal(2, c.Get("yyy.a").Int())
+	tt.Equal(3, c.Get("yyy.b").Int())
+	tt.Equal("iy", c.Get("nest.inner.y").String())
 }
 
 func TestDev(t *testing.T) {
@@ -28,8 +61,9 @@ func TestDev(t *testing.T) {
 	_ = zfile.WriteFile("test-dev.toml", []byte(`zls = "dev"`))
 	defer zfile.Remove("test-dev.toml")
 
-	c := conf.New("test", func(o *conf.Options) {
+	c := conf.New("test", func(o conf.Options) conf.Options {
 		o.PrimaryAliss = "dev"
+		return o
 	})
 
 	c.SetDefault("info", map[string]interface{}{"a": "18", "name": "is name"})
@@ -67,10 +101,11 @@ func TestEnv(t *testing.T) {
 
 	_ = os.Setenv("Z_ZLSGO", "YES")
 
-	c := conf.New("env", func(o *conf.Options) {
+	c := conf.New("env", func(o conf.Options) conf.Options {
 		o.AutomaticEnv = true
 		o.AutoCreate = true
 		o.EnvPrefix = "Z"
+		return o
 	})
 
 	defer zfile.Remove(c.Path())
@@ -94,8 +129,9 @@ func TestEnv(t *testing.T) {
 func TestDef(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	c := conf.New("def", func(o *conf.Options) {
+	c := conf.New("def", func(o conf.Options) conf.Options {
 		o.AutoCreate = true
+		return o
 	})
 	defer os.Remove(c.Path())
 
@@ -121,9 +157,10 @@ func TestDef(t *testing.T) {
 func TestFileName(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	c := conf.New("zls", func(o *conf.Options) {
+	c := conf.New("zls", func(o conf.Options) conf.Options {
 		o.AutoCreate = true
 		o.FileName = "tmp/data/zls"
+		return o
 	})
 
 	c.SetDefault("test", true)

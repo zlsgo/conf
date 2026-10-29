@@ -117,6 +117,21 @@ func (c *Confhub) Exist() bool {
 	return zfile.FileExist(c.fullpath)
 }
 
+// flattenDefault converts a map into leaf key/value pairs, e.g.
+// key.a, key.b, so that viper falls back to the default for keys
+// that are not present in the config file instead of replacing
+// the whole map.
+func flattenDefault(prefix string, m map[string]interface{}, fn func(key string, value interface{})) {
+	for k, v := range m {
+		key := prefix + "." + k
+		if sm, ok := v.(map[string]interface{}); ok && len(sm) > 0 {
+			flattenDefault(key, sm, fn)
+			continue
+		}
+		fn(key, v)
+	}
+}
+
 func (c *Confhub) SetDefault(key string, value interface{}) {
 	vof := reflect.Indirect(zreflect.ValueOf(value))
 	switch vof.Kind() {
@@ -126,9 +141,21 @@ func (c *Confhub) SetDefault(key string, value interface{}) {
 			c.Core.SetDefault(key, ztype.ToMaps(value))
 			return
 		}
-	case reflect.Struct:
-		c.Core.SetDefault(key, ztype.ToMap(value))
-		return
+	case reflect.Map, reflect.Struct:
+		var m map[string]interface{}
+		if vof.Kind() == reflect.Map {
+			var ok bool
+			m, ok = value.(map[string]interface{})
+			if !ok {
+				m = ztype.ToMap(value)
+			}
+		} else {
+			m = ztype.ToMap(value)
+		}
+		if len(m) > 0 {
+			flattenDefault(key, m, c.Core.SetDefault)
+			return
+		}
 	}
 
 	c.Core.SetDefault(key, value)

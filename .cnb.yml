@@ -1,0 +1,10 @@
+include:
+  - https://cnb.cool/zls-tools/vm/-/blob/main/tools/sync-github-zlsgo.yml
+
+$:
+  push:
+    sync_github:
+      env:
+          GIT_USER: zlsgo
+          BRANCHS: master,develop
+          FORCE_PUSH: true

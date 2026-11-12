@@ -158,6 +158,8 @@ func flattenDefault(prefix string, m map[string]interface{}, fn func(key string,
 }
 
 func (c *Confhub) SetDefault(key string, value interface{}) {
+	defer c.invalidate()
+
 	vof := reflect.Indirect(zreflect.ValueOf(value))
 	switch vof.Kind() {
 	case reflect.Slice, reflect.Array:
@@ -184,6 +186,16 @@ func (c *Confhub) SetDefault(key string, value interface{}) {
 	}
 
 	c.Core.SetDefault(key, value)
+}
+
+// invalidate 丢弃 GetAll 的缓存快照。
+//
+// SetDefault 会改变 viper 的默认值，但类里的 GetAll 缓存不会自动失效，
+// 晚设置默认值（例如模块在 Conf 构造完成后才注册）会读到旧快照。
+func (c *Confhub) invalidate() {
+	c.mu.Lock()
+	c.data = nil
+	c.mu.Unlock()
 }
 
 func (c *Confhub) Set(key string, value interface{}) {

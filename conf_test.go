@@ -40,7 +40,7 @@ func TestDefaultMerge(t *testing.T) {
 	c.SetDefault("xxx", xxx{A: 2, B: 3})
 	c.SetDefault("yyy", map[string]interface{}{"a": 2, "b": 3})
 	c.SetDefault("nest", map[string]interface{}{
-		"a": 1,
+		"a":     1,
 		"inner": map[string]interface{}{"x": "ix", "y": "iy"},
 	})
 	tt.NoError(c.Read())
@@ -197,4 +197,17 @@ key = 'test'
 	c.Set("info.name", "NewApp2")
 
 	tt.Equal("NewApp2", c.GetAll().Get("info.name").String())
+}
+
+func TestSetDefaultAfterReadInvalidatesCache(t *testing.T) {
+	tt := zlsgo.NewTest(t)
+
+	c := conf.New("late-default")
+	_ = c.Read() // 文件不存在也没关系，这里只关心 SetDefault 的可见性
+	tt.Equal("", c.GetAll().Get("late").Get("driver").String())
+
+	c.SetDefault("late", map[string]interface{}{"driver": "sqlite"})
+
+	tt.Equal("sqlite", c.GetAll().Get("late.driver").String())
+	tt.Equal("sqlite", c.Get("late.driver").String())
 }

@@ -35,6 +35,11 @@ func New(file string, opt ...func(o Options) Options) *Confhub {
 		o = f(o)
 	}
 
+	// 环境变量名不能包含 "."，未指定替换符时默认使用 "_"
+	if o.EnvKeyReplacer == "" {
+		o.EnvKeyReplacer = "_"
+	}
+
 	var (
 		tmp    []string
 		suffix string
@@ -52,9 +57,7 @@ func New(file string, opt ...func(o Options) Options) *Confhub {
 		core.SetEnvPrefix(o.EnvPrefix)
 	}
 
-	if o.EnvKeyReplacer != "" {
-		core.SetEnvKeyReplacer(strings.NewReplacer(".", o.EnvKeyReplacer))
-	}
+	core.SetEnvKeyReplacer(strings.NewReplacer(".", o.EnvKeyReplacer))
 
 	if o.AllowEmptyEnv {
 		core.AllowEmptyEnv(true)

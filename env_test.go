@@ -105,30 +105,30 @@ func TestAutomaticEnvPriority(t *testing.T) {
 }
 
 func TestAutomaticEnvKeyReplacer(t *testing.T) {
-	// 未设置替换符时，嵌套 key 的环境变量名保留点号
-	t.Setenv("DR_DB.HOST", "dot-host")
-	dot := newEnvConf(t, "DR", nil)
-	dot.SetDefault("db.host", "default-host")
-	if got := dot.Get("db.host").String(); got != "dot-host" {
-		t.Fatalf("db.host = %q, want dot-host", got)
-	}
+	// 未设置替换符时默认使用 "_"（环境变量名不能包含 "."）
+	t.Setenv("DR_DB_HOST", "underscore-host")
+	t.Setenv("DR_DB_PORT", "3306")
+	def := newEnvConf(t, "DR", nil)
+	def.SetDefault("db.host", "default-host")
+	def.SetDefault("db.port", 5432)
 
-	// 设置替换符后，嵌套 key 转换为下划线形式
-	t.Setenv("UR_DB_HOST", "underscore-host")
-	c := newEnvConf(t, "UR", func(o conf.Options) conf.Options {
-		o.EnvKeyReplacer = "_"
-		return o
-	})
-	c.SetDefault("db.host", "default-host")
-	c.SetDefault("db.port", 5432)
-	t.Setenv("UR_DB_PORT", "3306")
-
-	if got := c.Get("db.host").String(); got != "underscore-host" {
+	if got := def.Get("db.host").String(); got != "underscore-host" {
 		t.Fatalf("db.host = %q, want underscore-host", got)
 	}
 	// 环境变量是字符串，读取方需要显式转换类型
-	if got := c.Get("db.port").Int(); got != 3306 {
+	if got := def.Get("db.port").Int(); got != 3306 {
 		t.Fatalf("db.port = %d, want 3306", got)
+	}
+
+	// 显式设置替换符时按其替换
+	t.Setenv("UR_DB__HOST", "custom-host")
+	c := newEnvConf(t, "UR", func(o conf.Options) conf.Options {
+		o.EnvKeyReplacer = "__"
+		return o
+	})
+	c.SetDefault("db.host", "default-host")
+	if got := c.Get("db.host").String(); got != "custom-host" {
+		t.Fatalf("db.host = %q, want custom-host", got)
 	}
 }
 

@@ -20,7 +20,7 @@ fmt.Println(c.Get("server.port").Int())
 c := conf.New("app", func(o conf.Options) conf.Options {
     o.AutomaticEnv   = true
     o.EnvPrefix      = "APP" // 环境变量前缀
-    o.EnvKeyReplacer = "_"   // server.port -> APP_SERVER_PORT
+    o.EnvKeyReplacer = "_"   // 默认就是 "_"，server.port -> APP_SERVER_PORT
     o.AllowEmptyEnv  = true  // 空字符串也视为有效值
     return o
 })
@@ -35,7 +35,7 @@ c.Get("server.port").Int() // APP_SERVER_PORT=9090 时为 9090
 
 注意：
 
-- `EnvKeyReplacer` 留空时，嵌套 key 的环境变量名保留点号（如 `APP_SERVER.PORT`）。
+- 环境变量名不能包含 `.`，`EnvKeyReplacer` 留空时默认用 `_` 替换，嵌套 key `server.port` 对应 `APP_SERVER_PORT`。
 - 仅存在于环境变量的 key 可以被 `Get` 读到，但不会出现在 `AllKeys`/`GetAll`/`Unmarshal` 中。
   需要通过 `Unmarshal` 反序列化的字段，请先用 `SetDefault` 或配置文件注册。
 - 环境变量值始终是字符串，读取方需要显式转换成目标类型。

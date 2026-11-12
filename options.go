@@ -13,9 +13,9 @@ type Options struct {
 	// PrimaryAliss is the alias of the primary config, e.g. "app", used to
 	// distinguish between different config files.
 	PrimaryAliss string
-	// EnvKeyReplacer specifies the character that replaces "." in keys. For example,
-	// when set to "_", db.host maps to DB_HOST. If empty, no replacement happens and
-	// environment variable names keep their dotted form like "a.b".
+	// EnvKeyReplacer specifies the string that replaces "." in keys when looking up
+	// environment variables. Environment variable names cannot contain ".", so it
+	// defaults to "_" when left empty, e.g. db.host maps to DB_HOST.
 	EnvKeyReplacer string
 	// AllowEmptyEnv, when enabled, also treats environment variables with empty
 	// string values as valid overrides.

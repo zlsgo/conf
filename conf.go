@@ -3,6 +3,7 @@ package conf
 import (
 	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/sohaha/zlsgo/zfile"
@@ -19,6 +20,7 @@ type Confhub struct {
 	fullpath   string
 	option     Options
 	primary    *Confhub
+	mu         sync.RWMutex
 	data       ztype.Map
 }
 
@@ -50,6 +52,14 @@ func New(file string, opt ...func(o Options) Options) *Confhub {
 		core.SetEnvPrefix(o.EnvPrefix)
 	}
 
+	if o.EnvKeyReplacer != "" {
+		core.SetEnvKeyReplacer(strings.NewReplacer(".", o.EnvKeyReplacer))
+	}
+
+	if o.AllowEmptyEnv {
+		core.AllowEmptyEnv(true)
+	}
+
 	if strings.Contains(name, "/") {
 		tmp := strings.Split(name, "/")
 		tmpLen = len(tmp) - 1
@@ -73,7 +83,16 @@ func New(file string, opt ...func(o Options) Options) *Confhub {
 
 	var p *Confhub
 	if o.PrimaryAliss != "" {
-		p = New(name + "-" + o.PrimaryAliss)
+		primaryName := path + name + "-" + o.PrimaryAliss + "." + suffix
+		primaryOpt := func(cur Options) Options {
+			for _, f := range opt {
+				cur = f(cur)
+			}
+			cur.FileName = primaryName
+			cur.PrimaryAliss = ""
+			return cur
+		}
+		p = New(primaryName, primaryOpt)
 		_ = p.Read()
 	}
 
@@ -110,6 +129,9 @@ func (c *Confhub) Read() (err error) {
 	if c.primary != nil {
 		_ = c.Core.MergeConfigMap(c.primary.GetAll())
 	}
+	c.mu.Lock()
+	c.data = nil
+	c.mu.Unlock()
 	return
 }
 
@@ -187,10 +209,44 @@ func (c *Confhub) ConfigChange(fn func(e fsnotify.Event)) (err error) {
 }
 
 func (c *Confhub) GetAll(force ...bool) ztype.Map {
-	if c.data == nil || (len(force) > 0 && force[0]) {
-		c.data = c.Core.AllSettings()
+	c.mu.RLock()
+	data := c.data
+	c.mu.RUnlock()
+
+	if data == nil || (len(force) > 0 && force[0]) {
+		data = ztype.Map(cloneMap(c.Core.AllSettings()))
+		c.mu.Lock()
+		c.data = data
+		c.mu.Unlock()
 	}
-	return c.data
+	return data
+}
+
+// cloneMap 深拷贝 map/slice，避免与 viper 内部共享引用。
+func cloneMap(m map[string]interface{}) map[string]interface{} {
+	if m == nil {
+		return nil
+	}
+	out := make(map[string]interface{}, len(m))
+	for k, v := range m {
+		out[k] = cloneValue(v)
+	}
+	return out
+}
+
+func cloneValue(v interface{}) interface{} {
+	switch val := v.(type) {
+	case map[string]interface{}:
+		return cloneMap(val)
+	case []interface{}:
+		out := make([]interface{}, len(val))
+		for i, item := range val {
+			out[i] = cloneValue(item)
+		}
+		return out
+	default:
+		return v
+	}
 }
 
 func (c *Confhub) AllKeys() []string {
